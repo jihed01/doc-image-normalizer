@@ -36,3 +36,11 @@ select = ["E", "F", "I", "N", "UP", "B"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+[dependency-groups]
+dev = [
+    "matplotlib>=3.11.2",
+]
+
+[tool.setuptools.package-data]
+doc_normalizer = ["py.typed"]
