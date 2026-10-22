@@ -54,3 +54,38 @@ def test_normalize_endpoint_rejects_invalid_image() -> None:
     )
 
     assert response.status_code == 400
+
+
+def test_normalize_invalid_file_type():
+    file_bytes = io.BytesIO(b"ceci est un fichier texte")
+    response = client.post(
+        "/v1/normalize",
+        files={"file": ("test.txt", file_bytes, "text/plain")},
+    )
+
+    assert response.status_code == 415
+    assert "Format non supporte" in response.json()["detail"]
+
+
+def test_normalize_file_too_large():
+    large_data = b"0" * (11 * 1024 * 1024)
+    file_bytes = io.BytesIO(large_data)
+    response = client.post(
+        "/v1/normalize",
+        files={"file": ("large_image.png", file_bytes, "image/png")},
+    )
+
+    assert response.status_code == 413
+    assert "depasse la limite" in response.json()["detail"]
+
+
+def test_normalize_rejects_corrupted_image():
+    file_bytes = io.BytesIO(b"this is not a valid image")
+
+    response = client.post(
+        "/v1/normalize",
+        files={"file": ("corrupted.png", file_bytes, "image/png")},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid or unsupported image file."

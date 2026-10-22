@@ -10,6 +10,15 @@ from doc_normalizer.api.schemas import NormalizationResponse
 from doc_normalizer.core.denoise import denoise_and_binarize
 from doc_normalizer.core.deskew import deskew_image
 
+MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
+
+ALLOWED_CONTENT_TYPES = {
+    "image/png",
+    "image/jpeg",
+    "image/jpg",
+    "image/tiff",
+}
+
 app = FastAPI(
     title="Doc Image Normalizer API",
     version="0.1.0",
@@ -34,7 +43,20 @@ async def normalize_document(
     """Normalize an uploaded document image and return its metadata."""
     start_time = time.perf_counter()
 
-    contents = await file.read()
+    if file.content_type not in ALLOWED_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Format non supporte. Formats acceptes : PNG, JPG, JPEG et TIFF.",
+        )
+
+    contents = await file.read(MAX_FILE_SIZE_BYTES + 1)
+
+    if len(contents) > MAX_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail="La taille du fichier depasse la limite de 10 Mio.",
+        )
+
     image_array = np.frombuffer(contents, dtype=np.uint8)
     image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
 
